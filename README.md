@@ -57,6 +57,22 @@
 > Код не идеален, но он работает.  
 > **Докрутки, пул-реквесты и идеи приветствуются!**
 
+### 🐍 Версия для разработчиков (исходный код)
+
+**Python 3.12+**
+- `core_data.py` — вся нумерологическая логика (2000+ строк)
+- `text_generator.py` — генератор живых текстов
+- `ui_obod_qt.py` — Qt интерфейс
+- `main.py` — точка входа для локального запуска
+- `run_obod.py` — умный запускатор
+- `obod.html` — HTML интерфейс (для GAS)
+  
+```bash
+git clone https://github.com/StoreDate/obod.git
+cd obod/python
+pip install -r requirements.txt
+python main.py
+
 ## 📜 Лицензия
 
 MIT / Apache 2.0
