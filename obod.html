@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="ru">
+    <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <script src="qwebchannel.js"></script>
+    <title>ОБОД — Приборная панель</title>
+    <style>
+/* Удалите весь @font-face блок */
+
+/* Оставьте только это: */
+* { font-family: 'Share Tech Mono', monospace; }
+body { font-family: 'Share Tech Mono', monospace; }
+.ship-code { font-family: 'Share Tech Mono', monospace; }
+.ship-sub { font-family: 'Share Tech Mono', monospace; }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #000102;
+            font-family: 'Share Tech Mono', monospace;
+            color: #bbccbb;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 10px;
+        }
+        .panel {
+            background: rgba(10, 15, 10, 0.85);
+            border: 2px solid #1a2a1a;
+            border-radius: 8px;
+            padding: 14px;
+            width: 100%;
+            max-width: 560px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 0 40px rgba(0,0,0,0.8), inset 0 0 30px rgba(0,20,10,0.2);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-height: 100vh;
+            overflow-y: auto;
+        }
+
+
+        .top-bar { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-shrink: 0; }
+        .brand { display: flex; align-items: center; gap: 6px; }
+        .ship-code { 
+            font-size: 28px; 
+            font-weight: bold; 
+            color: #00ff41; 
+            letter-spacing: 6px; 
+            line-height: 1; 
+            font-family: 'Share Tech Mono', monospace;
+        }
+        .ship-sub-block { display: flex; flex-direction: column; line-height: 1.1; }
+        .ship-sub { 
+            font-size: 10px; 
+            letter-spacing: 1px; 
+            color: #667766; 
+            white-space: nowrap; 
+            font-family: 'Share Tech Mono', monospace;
+        }
+        
+        .top-right { display: flex; align-items: center; gap: 10px; }
+        .indicators { display: flex; gap: 8px; }
+        .indicator-item { display: flex; align-items: center; gap: 4px; font-size: 10px; letter-spacing: 1px; color: #667766; white-space: nowrap; }
+        .lamp { width: 6px; height: 6px; border-radius: 50%; border: 1px solid #000; flex-shrink: 0; }
+        .lamp-green { background: #00ff41; box-shadow: 0 0 6px #00ff41; animation: lamp-pulse 3s infinite; }
+        .lamp-amber { background: #ffaa00; box-shadow: 0 0 6px #ffaa00; }
+        .lamp-red { background: #ff2200; box-shadow: 0 0 6px #ff2200; animation: lamp-blink 1s infinite; }
+        .lamp-off { background: #1a1a1a; box-shadow: none; }
+        @keyframes lamp-pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+        @keyframes lamp-blink { 0%,49%{opacity:1;} 50%,100%{opacity:0.15;} }
+        .comm-link { color: #00ff41; text-decoration: none; font-size: 10px; letter-spacing: 2px; border-bottom: 1px dashed #00ff41; animation: link-glow 1.8s infinite; white-space: nowrap; }
+        @keyframes link-glow { 0%,100%{text-shadow:0 0 5px rgba(0,255,65,0.4);opacity:0.7;} 50%{text-shadow:0 0 12px #00ff41;opacity:1;} }
+
+        .launch-area { display: flex; align-items: center; gap: 6px; background: #000a05; border: 1px solid #1a2a1a; border-radius: 4px; padding: 5px 8px; box-shadow: inset 0 0 20px rgba(0,20,10,0.3); flex-shrink: 0; }
+        .launch-label { font-size: 10px; letter-spacing: 2px; color: #00ff41; animation: label-pulse 2.5s infinite; white-space: nowrap; flex-shrink: 0; }
+        @keyframes label-pulse { 0%,100%{opacity:0.7;} 50%{opacity:1;text-shadow:0 0 8px rgba(0,255,65,0.4);} }
+        .date-input-group { display: flex; align-items: center; gap: 2px; flex: 1; min-width: 0; }
+        .date-cell { position: relative; display: flex; align-items: center; }
+        .date-input { background: transparent; border: none; border-bottom: 1px dashed #1a2a1a; color: #ffaa00; font-family: 'Share Tech Mono', monospace; font-size: 15px; text-align: center; padding: 2px 3px; outline: none; caret-color: #00ff41; transition: border-color 0.3s, box-shadow 0.3s; position: relative; z-index: 2; }
+        .date-input:focus { border-bottom-color: #00ff41; box-shadow: 0 4px 10px rgba(0,255,65,0.1); color: #ffcc44; }
+        .date-input.day { width: 28px; }
+        .date-input.month { width: 28px; }
+        .date-input.year { width: 42px; }
+        .date-input.partner { width: 50px; }
+        .date-glow { position: absolute; bottom: 2px; left: 2px; right: 2px; height: 2px; background: radial-gradient(ellipse at center, rgba(255,40,0,0.5) 0%, transparent 80%); border-radius: 50%; z-index: 1; pointer-events: none; animation: cell-blink 1.5s ease-in-out infinite; }
+        .date-cell.filled .date-glow { opacity: 0; transition: opacity 0.4s; }
+        @keyframes cell-blink { 0%,100%{opacity:0.3;} 50%{opacity:0.8;} }
+        .date-sep { color: #1a2a1a; font-size: 14px; transition: color 0.3s; }
+        .date-sep.active { color: #00ff41; }
+        .btn-launch { font-family: 'Share Tech Mono', monospace; font-size: 10px; font-weight: bold; letter-spacing: 1px; text-transform: uppercase; padding: 5px 10px; border: 2px solid #00ff41; background: rgba(0,255,65,0.05); color: #00ff41; cursor: pointer; border-radius: 2px; white-space: nowrap; transition: all 0.2s; animation: btn-glow 2s infinite; flex-shrink: 0; }
+        @keyframes btn-glow { 0%,100%{box-shadow:0 0 6px rgba(0,255,65,0.2);} 50%{box-shadow:0 0 18px rgba(0,255,65,0.5);} }
+        .btn-launch:hover { background: #00ff41; color: #000; box-shadow: 0 0 30px rgba(0,255,65,0.6); animation: none; }
+
+        .section-head { display: flex; align-items: center; gap: 6px; border-bottom: 1px solid #1a2a1a; padding-bottom: 4px; margin-top: 2px; flex-shrink: 0; }
+        .section-title { font-size: 10px; letter-spacing: 3px; color: #00ff41; text-transform: uppercase; }
+        .detail-area { background: #000a05; border: 1px solid #1a2a1a; border-radius: 4px; padding: 10px 12px; min-height: 50px; font-size: 10px; line-height: 1.5; color: #99bb99; transition: all 0.3s ease; box-shadow: inset 0 0 20px rgba(0,20,10,0.3); flex-shrink: 0; }
+        .detail-placeholder { color: #556655; font-style: italic; }
+        .detail-human { color: #bbccbb; font-size: 10px; margin-top: 4px; border-left: 2px solid #00ff41; padding-left: 8px; }
+
+        .scale-row { display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 6px 8px; border-radius: 4px; transition: background 0.2s; }
+        .scale-row:hover { background: rgba(0,255,65,0.03); }
+        .scale-label { font-size: 10px; letter-spacing: 2px; color: #889988; text-transform: uppercase; width: 65px; text-align: left; flex-shrink: 0; display: flex; align-items: center; gap: 6px; }
+        .attention-dot { width: 6px; height: 6px; border-radius: 50%; background: #00ff41; box-shadow: 0 0 8px #00ff41; flex-shrink: 0; animation: pulse-dot 2s ease-in-out infinite; }
+        @keyframes pulse-dot { 0%,100%{opacity:0.5;transform:scale(1);} 50%{opacity:1;transform:scale(1.3);} }
+        .scale-track { flex:1; height:10px; background:#0a0f0a; border:1px solid #1a2a1a; border-radius:5px; position:relative; overflow:hidden; box-shadow:inset 0 1px 4px rgba(0,0,0,0.7); min-width:80px; }
+        .zone-red { background:linear-gradient(90deg,#2a0000,#330000); height:100%; position:absolute; left:0; width:30%; border-right:1px solid #1a0000; }
+        .zone-yellow { background:linear-gradient(90deg,#2a1a00,#332200); height:100%; position:absolute; left:30%; width:20%; }
+        .zone-green { background:linear-gradient(90deg,#002200,#003300); height:100%; position:absolute; left:50%; width:50%; }
+        .ticks { position:absolute; top:0; left:0; width:100%; height:100%; display:flex; align-items:stretch; pointer-events:none; }
+        .tick { flex:1; border-right:1px solid rgba(0,0,0,0.5); background:rgba(255,255,255,0.02); }
+        .tick:last-child { border-right:none; }
+        .tick:nth-child(5n) { background:rgba(255,255,255,0.06); }
+        .active-fill { position:absolute; top:0; left:0; height:100%; border-radius:5px 0 0 5px; box-shadow:0 0 10px currentColor; transition:width 0.3s ease; }
+        .active-fill.green { background:#00ff41; color:#00ff41; opacity:0.55; }
+        .active-fill.amber { background:#ffaa00; color:#ffaa00; opacity:0.55; }
+        .active-fill.red { background:#ff2200; color:#ff2200; opacity:0.55; }
+        @keyframes fill-pulse { 0%,100%{opacity:0.5;} 50%{opacity:0.8;} }
+        .pulse { animation:fill-pulse 2.2s ease-in-out infinite; }
+        .scale-value { font-size:13px; font-weight:bold; letter-spacing:1px; width:42px; text-align:right; flex-shrink:0; }
+        .scale-value.green { color:#00ff41; text-shadow:0 0 8px rgba(0,255,65,0.7); }
+        .scale-value.amber { color:#ffaa00; text-shadow:0 0 8px rgba(255,170,0,0.7); }
+        .scale-desc { font-size:10px; color:#667766; letter-spacing:1px; width:55px; text-align:left; flex-shrink:0; line-height:1.2; }
+
+        .display { background: #000a05; border: 1px solid #1a2a1a; border-radius: 3px; padding: 8px; box-shadow: inset 0 0 20px rgba(0,20,10,0.3); flex-shrink: 0; }
+        .display-header { display: flex; align-items: center; gap: 5px; margin-bottom: 4px; padding-bottom: 4px; border-bottom: 1px solid #1a2a1a; }
+        .display-title { font-size: 10px; letter-spacing: 2px; color: #00ff41; text-transform: uppercase; }
+        .display-text { font-size: 10px; line-height: 1.4; color: #99bb99; }
+        .highlight { color: #ffaa00; }
+        .good { color: #00ff41; }
+        .crit { color: #ff2200; }
+        .big-num { text-align: center; padding: 2px 0; }
+        .big-num .num { font-size: 42px; font-weight: bold; letter-spacing: 3px; line-height: 1; color: #00ff41; text-shadow: 0 0 15px rgba(0,255,65,0.15); }
+        .big-num .num.amber { color: #ffaa00; text-shadow: 0 0 15px rgba(255,170,0,0.12); }
+        .big-num .lbl { font-size: 10px; letter-spacing: 3px; color: #667766; margin-top: 1px; }
+        .row { display: flex; gap: 6px; align-items: center; }
+        .row.wrap { flex-wrap: wrap; }
+        .flex-1 { flex: 1; min-width: 0; }
+        .gap-8 { gap: 8px; }
+        .mt-4 { margin-top: 4px; }
+        .text-center { text-align: center; }
+
+        .warn-plate { background: #0a0500; border: 1px dashed #ffaa00; padding: 6px 8px; font-size: 10px; color: #ffaa00; letter-spacing: 1px; animation: plate-warn 2s infinite; border-radius: 2px; margin-top: 6px; }
+        @keyframes plate-warn { 0%,100%{border-color:#ffaa00;} 50%{border-color:#553300;} }
+
+        .btn { font-family: 'Share Tech Mono', monospace; font-size: 10px; font-weight: bold; letter-spacing: 1px; text-transform: uppercase; padding: 5px 10px; border: 2px solid; cursor: pointer; background: #0a0f0a; border-color: #1a2a1a #0a150a #0a150a #1a2a1a; color: #667766; white-space: nowrap; border-radius: 2px; }
+        .btn:hover { color: #00ff41; border-color: #00ff41; background: rgba(0,255,65,0.05); }
+        .btn.danger { color: #ff2200; border-color: #3a1a1a #200a0a #200a0a #3a1a1a; background: #150a0a; }
+        .btn.danger:hover { color: #ff6644; border-color: #ff6644; }
+
+        .bottom-bar { display: flex; gap: 6px; flex-shrink: 0; }
+        .ship-plate { flex: 1; background: linear-gradient(180deg, #111c11 0%, #0a100a 100%); border: 2px solid #1a2a1a; border-radius: 4px; padding: 5px 10px; display: flex; align-items: center; gap: 8px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.6); }
+        .bottom-bar .ship-plate { flex-wrap: wrap; gap: 6px; }
+
+        .mandala-canvas { width: 100%; border: 1px solid #1a2a1a; border-radius: 2px; background: #000a05; display: block; }
+        
+        .journal-link { color:#00ff41; cursor:pointer; font-size:10px; letter-spacing:1px; white-space:nowrap; animation:link-glow 1.8s infinite; }
+        .journal-window {
+            background: #000a05; border: 1px solid #1a2a1a; border-radius: 4px; padding: 12px 14px;
+            font-size: 11px; line-height: 1.5; color: #99bb99;
+            box-shadow: inset 0 0 20px rgba(0,20,10,0.3);
+            display: none; max-height: 250px; overflow-y: auto;
+            white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word;
+            font-family: 'Share Tech Mono', monospace; flex-shrink: 0;
+        }
+        .journal-window.visible { display: block; }
+
+        .result-window { background: #000a05; border: 1px solid #1a2a1a; border-radius: 4px; padding: 10px 12px; font-size: 10px; line-height: 1.5; color: #99bb99; box-shadow: inset 0 0 20px rgba(0,20,10,0.3); display: none; flex-shrink: 0; }
+        .result-window.visible { display: block; }
+        .result-window .human { color: #bbccbb; font-size: 10px; margin-top: 4px; border-left: 2px solid #00ff41; padding-left: 8px; }
+
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 9999; justify-content: center; align-items: center; }
+        .modal-overlay.show { display: flex; }
+        .modal-box { background: #0a1a0a; border: 2px solid #00ff41; border-radius: 8px; padding: 20px; max-width: 500px; width: 90%; color: #00ff41; font-family: 'Share Tech Mono', monospace; font-size: 13px; line-height: 1.5; }
+        .modal-box h3 { margin: 0 0 12px 0; font-size: 16px; color: #ffaa00; }
+        .modal-box .question { margin-bottom: 15px; }
+        .modal-box .options { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px; }
+        .modal-box .opt-btn { padding: 8px 14px; border: 1px solid #00ff41; background: transparent; color: #00ff41; cursor: pointer; font-family: 'Share Tech Mono', monospace; font-size: 12px; border-radius: 4px; transition: all 0.2s; }
+        .modal-box .opt-btn:hover { background: #00ff41; color: #000; }
+        .modal-box .progress { color: #556655; font-size: 10px; margin-top: 10px; }
+        .modal-box .close-btn { margin-top: 12px; padding: 8px 20px; border: 1px solid #ff4422; background: transparent; color: #ff4422; cursor: pointer; font-family: 'Share Tech Mono', monospace; border-radius: 4px; float: right; }
+
+        #journalBody { white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word; max-width: 100%; }
+
+        ::-webkit-scrollbar { width: 2px; }
+        ::-webkit-scrollbar-track { background: #000; }
+        ::-webkit-scrollbar-thumb { background: #1a2a1a; }
+
+        @media (min-width: 768px) { .big-num .num { font-size: 52px; } .display-text { font-size: 12px; } .btn { font-size: 9px; } }
+        @media (max-width: 500px) {
+            .top-bar { flex-direction: column; align-items: flex-start; gap: 4px; }
+            .top-right { width: 100%; justify-content: space-between; }
+            .launch-area { flex-wrap: wrap; gap: 4px; }
+            .launch-label { font-size: 8px; }
+            .date-input-group { order: 1; width: 100%; }
+            .btn-launch { order: 2; }
+            .date-input.day, .date-input.month { width: 24px; font-size: 13px; }
+            .date-input.year { width: 36px; font-size: 13px; }
+            .date-input.partner { width: 44px; font-size: 13px; }
+            .scale-label{width:50px;font-size:9px;letter-spacing:1px;}
+            .scale-value{width:30px;font-size:10px;}
+            .scale-desc{width:38px;font-size:8px;}
+        }
+    </style>
+</head>
+<body>
+    <canvas id="starfield" style="position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;"></canvas>
+    <div class="panel">
+
+        <div class="top-bar">
+            <div class="brand">
+                    <span class="ship-code">ОБОД</span>
+                        <div class="ship-sub-block">
+                                    <span class="ship-sub">▲ ОБРАЗНАЯ</span>
+                                    <span class="ship-sub">◆ ОБРАБОТКА</span>
+                                    <span class="ship-sub">● ДАННЫХ</span>
+                                    </div>
+                                </div>
+            <div class="top-right">
+                <div class="indicators">
+                    <div class="indicator-item"><span class="lamp lamp-green" id="lampPower"></span>ПИТ</div>
+                    <div class="indicator-item"><span class="lamp lamp-green" id="lampSystem"></span>СИС</div>
+                    <div class="indicator-item"><span class="lamp lamp-off" id="lampAlarm"></span>ТРЕВ</div>
+                </div>
+                <a class="comm-link" href="mailto:telegram_8@mail.ru">📡 СВЯЗЬ</a>
+            </div>
+        </div>
+
+        <div class="launch-area">
+            <span class="launch-label">▶ ДАТА ВЫПУСКА</span>
+            <div class="date-input-group">
+                <span class="date-cell" id="cellDay"><input type="text" class="date-input day" id="dayInput" placeholder="ДД" maxlength="2" inputmode="numeric"><span class="date-glow"></span></span>
+                <span class="date-sep" id="sep1">.</span>
+                <span class="date-cell" id="cellMonth"><input type="text" class="date-input month" id="monthInput" placeholder="ММ" maxlength="2" inputmode="numeric"><span class="date-glow"></span></span>
+                <span class="date-sep" id="sep2">.</span>
+                <span class="date-cell" id="cellYear"><input type="text" class="date-input year" id="yearInput" placeholder="ГГГГ" maxlength="4" inputmode="numeric"><span class="date-glow"></span></span>
+            </div>
+            <button class="btn-launch" id="btnLaunch">▶ ЗАПУСК</button>
+        </div>
+
+        <div class="section-head"><span class="lamp lamp-green"></span><span class="section-title">▌ КОНТУРЫ СИСТЕМЫ</span></div>
+        <div class="detail-area" id="detailArea"><span class="detail-placeholder">◈ нажмите на шкалу для расшифровки</span></div>
+        
+        <div class="scale-row" data-contour="engine">
+            <div class="scale-label"><span class="attention-dot"></span> ДВИГ.</div>
+            <div class="scale-track">
+                <div class="zone-red"></div><div class="zone-yellow"></div><div class="zone-green"></div>
+                <div class="ticks" id="engineTicks"></div>
+                <div class="active-fill green pulse" id="engineFill" style="width:0%"></div>
+            </div>
+            <span class="scale-value green" id="engineVal">--%</span>
+            <span class="scale-desc" id="engineDesc"></span>
+        </div>
+        
+        <div class="scale-row" data-contour="memory">
+            <div class="scale-label"><span class="attention-dot"></span> ПАМЯТЬ</div>
+            <div class="scale-track">
+                <div class="zone-red"></div><div class="zone-yellow"></div><div class="zone-green"></div>
+                <div class="ticks" id="memoryTicks"></div>
+                <div class="active-fill amber pulse" id="memoryFill" style="width:0%"></div>
+            </div>
+            <span class="scale-value amber" id="memoryVal">--%</span>
+            <span class="scale-desc" id="memoryDesc"></span>
+        </div>
+        
+        <div class="scale-row" data-contour="fuel">
+            <div class="scale-label"><span class="attention-dot"></span> ТОПЛИВО</div>
+            <div class="scale-track">
+                <div class="zone-red"></div><div class="zone-yellow"></div><div class="zone-green"></div>
+                <div class="ticks" id="fuelTicks"></div>
+                <div class="active-fill green pulse" id="fuelFill" style="width:0%"></div>
+            </div>
+            <span class="scale-value green" id="fuelVal">--%</span>
+            <span class="scale-desc" id="fuelDesc"></span>
+        </div>
+        
+        <div class="scale-row" data-contour="injection">
+            <div class="scale-label"><span class="attention-dot"></span> ВПРЫСК</div>
+            <div class="scale-track">
+                <div class="zone-red"></div><div class="zone-yellow"></div><div class="zone-green"></div>
+                <div class="ticks" id="injectionTicks"></div>
+                <div class="active-fill amber pulse" id="injectionFill" style="width:0%"></div>
+            </div>
+            <span class="scale-value amber" id="injectionVal">--%</span>
+            <span class="scale-desc" id="injectionDesc"></span>
+        </div>
+
+        <div class="row">
+            <div class="display flex-1">
+                <div class="display-header"><span class="lamp lamp-green"></span><span class="display-title">ECU ID</span></div>
+                <div class="big-num"><div class="num" id="ecuNum">--</div><div class="lbl" id="ecuName">--</div></div>
+                <div class="display-text mt-4 text-center" id="ecuDesc">ожидание данных</div>
+            </div>
+            <div class="display flex-1">
+                <div class="display-header"><span class="lamp lamp-amber"></span><span class="display-title">АКТИВ. КЛЮЧ</span></div>
+                <div class="big-num"><div class="num amber" id="keyNum">--</div><div class="lbl" id="keyName">--</div></div>
+                <div class="display-text mt-4 text-center" id="keyDesc">ожидание данных</div>
+            </div>
+        </div>
+        
+        <div class="display-text text-center" style="color:#556655;font-style:italic; font-size:11px;" id="ecuLink">введите дату выпуска</div>
+
+        <div class="display">
+            <div class="display-header"><span class="lamp lamp-green"></span><span class="display-title" id="driverTitle">🔧 ДРАЙВЕР: --</span></div>
+            <div class="display-text" style="color:#667766;margin-bottom:5px;" id="driverShort">--</div>
+            <div class="display-text" id="driverDesc">--</div>
+            <div class="row mt-4">
+                <div class="flex-1 display-text"><span class="good">✅ СИЛА:</span> <span id="driverStrength">--</span></div>
+                <div class="flex-1 display-text"><span class="highlight">⚠️ СЛАБОСТЬ:</span> <span id="driverWeakness">--</span></div>
+            </div>
+        </div>
+
+        <div class="display">
+            <div class="display-header"><span class="lamp lamp-green"></span><span class="display-title">▌ ДИАГНОСТИКА ПРОШИВКИ</span></div>
+            <div class="display-text"><span class="highlight" id="diagName">--</span><br><span class="highlight">⚠ РИСК:</span> <span id="diagRisk">--</span>. <span class="good">✓ ПРАКТИКА:</span> <span id="diagPractice">--</span></div>
+            <div class="warn-plate" id="warnPlate">🚨 АВАРИЙНЫЙ ПРОТОКОЛ: --</div>
+        </div>
+
+        <div class="section-head"><span class="lamp lamp-amber"></span><span class="section-title">▌ СТЫКОВКА СИСТЕМ</span></div>
+        <div class="launch-area">
+            <span class="launch-label">▶ ПАРТНЁР</span>
+            <div class="date-input-group">
+                <span class="date-cell" id="cellPartner"><input type="text" class="date-input partner" id="partnerInput" placeholder="1-33" maxlength="2" inputmode="numeric"><span class="date-glow"></span></span>
+            </div>
+            <button class="btn-launch" id="btnCompat">▶ ПРОВЕРИТЬ</button>
+        </div>
+        <div class="result-window" id="compatResult"><div class="human" id="compatText"></div></div>
+
+        <div class="display">
+            <div class="display-header"><span class="lamp lamp-green"></span><span class="display-title">▌ МАНДАЛА</span></div>
+            <canvas id="mandalaCanvas" class="mandala-canvas" height="200"></canvas>
+            <div class="row mt-4">
+                <div class="flex-1 display-text"><span class="good">▸ ЗОНЫ СИЛЫ:</span> <span id="mandalaRich">--</span></div>
+                <div class="flex-1 display-text"><span class="highlight">▸ ЗОНЫ РОСТА:</span> <span id="mandalaEmpty">--</span></div>
+            </div>
+        </div>
+
+        <div class="display">
+            <div class="display-header"><span class="lamp lamp-amber"></span><span class="display-title">▌ КАЛИБРОВКА ДАТЧИКОВ</span></div>
+            <div class="display-text" style="margin-bottom:5px;" id="testsIntro">три теста для точной настройки</div>
+            <div class="row wrap gap-8">
+                <button class="btn" id="btnTobolog">🧠 СТИЛЬ РЕАКЦИИ</button>
+                <button class="btn" id="btnVkb">📡 УРОВЕНЬ СИГНАЛА</button>
+                <button class="btn" id="btnAlexi">🔇 ФИЛЬТР ЭМОЦИЙ</button>
+            </div>
+            <div class="display-text mt-4" id="testsStatus"></div>
+        </div>
+
+        <div class="bottom-bar">
+            <div class="ship-plate">
+                <span class="journal-link" id="btnJournal">▸ БОРТОВОЙ ЖУРНАЛ</span>
+                <button class="btn danger" id="btnClear">🗑 СБРОС</button>
+                <span style="flex:1;"></span>
+                <span class="lamp lamp-green"></span>
+                <span class="display-text" id="bottomStatus">БОРТ ГОТОВ</span>
+            </div>
+        </div>
+        <div class="journal-window" id="journalWindow"><pre id="journalBody"></pre></div>
+
+    </div>
+
+    <div class="modal-overlay" id="testModal">
+        <div class="modal-box">
+            <h3 id="modalTitle">Тест</h3>
+            <div class="question" id="modalQuestion"></div>
+            <div class="options" id="modalOptions"></div>
+            <div class="progress" id="modalProgress"></div>
+            <button class="close-btn" id="modalClose">ОТМЕНА</button>
+        </div>
+    </div>
+
+    <script>
+        // ══════════════════════════════════════════════════════════════
+        // ОБОД · JS v7.0 · полный мост с Python · все функции
+        // ══════════════════════════════════════════════════════════════
+        
+        // ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ (для доступа из Python)
+        var _details = {};
+        var md = { counts: [0,0,0,0,0,0,0,0,0], connections: [] };
+        
+        (function() {
+            'use strict';
+            var py = null;
+            var mandalaActive = true;
+            
+            // ── МОСТ ──
+            function initBridge() {
+                try {
+                    if (typeof QWebChannel !== 'undefined') {
+                        new QWebChannel(qt.webChannelTransport, function(channel) {
+                            py = channel.objects.pybridge;
+                            console.log("ОБОД: мост активирован");
+                            document.getElementById('bottomStatus').textContent = 'БОРТ ГОТОВ';
+                        });
+                    } else {
+                        console.warn("QWebChannel не найден");
+                        document.getElementById('bottomStatus').textContent = 'МОСТ НЕ АКТИВЕН';
+                    }
+                } catch(e) {
+                    console.error("Ошибка инициализации моста:", e);
+                    document.getElementById('bottomStatus').textContent = 'ОШИБКА МОСТА';
+                }
+            }
+            
+            // ── ВСПОМОГАТЕЛЬНЫЕ ──
+            function updateAll() {
+                var d = document.getElementById('dayInput') ? document.getElementById('dayInput').value : '';
+                var m = document.getElementById('monthInput') ? document.getElementById('monthInput').value : '';
+                var y = document.getElementById('yearInput') ? document.getElementById('yearInput').value : '';
+                var p = document.getElementById('partnerInput') ? document.getElementById('partnerInput').value : '';
+                
+                var sep1 = document.getElementById('sep1');
+                var sep2 = document.getElementById('sep2');
+                if (sep1) sep1.className = 'date-sep' + (d ? ' active' : '');
+                if (sep2) sep2.className = 'date-sep' + (m ? ' active' : '');
+                
+                var cd = document.getElementById('cellDay');
+                var cm = document.getElementById('cellMonth');
+                var cy = document.getElementById('cellYear');
+                var cp = document.getElementById('cellPartner');
+                if (cd) cd.className = 'date-cell' + (d ? ' filled' : '');
+                if (cm) cm.className = 'date-cell' + (m ? ' filled' : '');
+                if (cy) cy.className = 'date-cell' + (y ? ' filled' : '');
+                if (cp) cp.className = 'date-cell' + (p ? ' filled' : '');
+            }
+            
+            function showDetail(k) {
+                var d = _details[k] || { tech: '--', human: '--' };
+                var area = document.getElementById('detailArea');
+                if (area) {
+                    area.innerHTML = '<div style="color:#556655;font-size:10px;">' + escapeHtml(d.tech) + '</div>' +
+                                    '<div class="detail-human">' + escapeHtml(d.human) + '</div>';
+                }
+            }
+            
+            function escapeHtml(str) {
+                if (!str) return '';
+                str = String(str);
+                return str
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#x27;')
+                    .replace(/\//g, '&#x2F;');
+            }
+            
+            // ── ВЫЗОВЫ ИЗ PYTHON ──
+            window.resetUI = function() {
+                console.log("Сброс UI");
+                var ids = ['ecuNum','ecuName','keyNum','keyName','ecuLink',
+                           'driverTitle','driverShort','driverDesc','driverStrength','driverWeakness',
+                           'diagName','diagRisk','diagPractice','mandalaRich','mandalaEmpty',
+                           'testsStatus','compatText','journalBody'];
+                for (var i = 0; i < ids.length; i++) {
+                    var el = document.getElementById(ids[i]);
+                    if (el) el.textContent = '--';
+                }
+                
+                var ecuDesc = document.getElementById('ecuDesc');
+                if (ecuDesc) ecuDesc.innerHTML = 'ожидание данных';
+                var keyDesc = document.getElementById('keyDesc');
+                if (keyDesc) keyDesc.innerHTML = 'ожидание данных';
+                var compatResult = document.getElementById('compatResult');
+                if (compatResult) compatResult.classList.remove('visible');
+                var journalWindow = document.getElementById('journalWindow');
+                if (journalWindow) journalWindow.classList.remove('visible');
+                var warnPlate = document.getElementById('warnPlate');
+                if (warnPlate) warnPlate.style.display = 'none';
+                var lampAlarm = document.getElementById('lampAlarm');
+                if (lampAlarm) lampAlarm.className = 'lamp lamp-off';
+                var lampSystem = document.getElementById('lampSystem');
+                if (lampSystem) lampSystem.className = 'lamp lamp-green';
+                var bottomStatus = document.getElementById('bottomStatus');
+                if (bottomStatus) bottomStatus.textContent = 'БОРТ ГОТОВ';
+                
+                var contours = ['engine','memory','fuel','injection'];
+                for (var j = 0; j < contours.length; j++) {
+                    var fill = document.getElementById(contours[j] + 'Fill');
+                    if (fill) { fill.style.width = '0%'; fill.className = 'active-fill green pulse'; }
+                    var val = document.getElementById(contours[j] + 'Val');
+                    if (val) { val.textContent = '--%'; val.className = 'scale-value green'; }
+                }
+                
+                _details = {};
+                md.counts = [0,0,0,0,0,0,0,0,0];
+                md.connections = [];
+                
+                var inputs = ['dayInput','monthInput','yearInput','partnerInput'];
+                for (var k = 0; k < inputs.length; k++) {
+                    var inp = document.getElementById(inputs[k]);
+                    if (inp) inp.value = '';
+                }
+                updateAll();
+            };
+            
+            window.updateMandala = function(d, m, y) {
+                if (d === undefined || m === undefined || y === undefined) {
+                    md.counts = [0,0,0,0,0,0,0,0,0];
+                    md.connections = [];
+                    return;
+                }
+                var ds = String(d).padStart(2,'0');
+                var ms = String(m).padStart(2,'0');
+                var ys = String(y);
+                var dateStr = ds + ms + ys;
+                var counts = [0,0,0,0,0,0,0,0,0];
+                for (var i = 0; i < dateStr.length; i++) {
+                    var digit = parseInt(dateStr[i], 10);
+                    if (!isNaN(digit) && digit > 0 && digit <= 9) {
+                        counts[digit-1]++;
+                    }
+                }
+                md.counts = counts;
+                var conns = [];
+                for (var j = 0; j < dateStr.length - 1; j++) {
+                    var d1 = parseInt(dateStr[j], 10);
+                    var d2 = parseInt(dateStr[j+1], 10);
+                    if (d1 && d2 && d1 !== d2 && d1 >= 1 && d1 <= 9 && d2 >= 1 && d2 <= 9) {
+                        conns.push([d1-1, d2-1]);
+                    }
+                }
+                md.connections = conns;
+            };
+            
+            // ── ЗВЁЗДЫ ──
+            var sc = document.getElementById('starfield');
+            var sctx = sc ? sc.getContext('2d') : null;
+            var stars = [];
+            var starAnimId = null;
+            var W, H;
+            
+            function initStars() {
+                if (!sc || !sctx) return;
+                W = sc.width = window.innerWidth;
+                H = sc.height = window.innerHeight;
+                stars.length = 0;
+                for (var i = 0; i < 200; i++) {
+                    stars.push({
+                        x: Math.random() * W,
+                        y: Math.random() * H,
+                        z: Math.random() * 3 + 0.5,
+                        baseSize: Math.random() * 0.5 + 0.1,
+                        brightness: Math.random() * 0.3 + 0.2,
+                        flareTimer: Math.random() * 20,
+                        flareDuration: 0,
+                        flareMax: 1 + Math.random() * 3,
+                        flareCooldown: 10 + Math.random() * 40
+                    });
+                }
+            }
+            
+            function drawStars() {
+                if (!sc || !sctx || stars.length === 0) {
+                    starAnimId = requestAnimationFrame(drawStars);
+                    return;
+                }
+                W = sc.width = window.innerWidth;
+                H = sc.height = window.innerHeight;
+                sctx.fillStyle = 'rgba(0,2,1,0.06)';
+                sctx.fillRect(0, 0, W, H);
+                var cx = W / 2, cy = H / 2;
+                for (var i = 0; i < stars.length; i++) {
+                    var s = stars[i];
+                    s.x += (s.x - cx) * 0.0006 * s.z;
+                    s.y += (s.y - cy) * 0.0006 * s.z;
+                    s.z += 0.001;
+                    if (s.z > 3.5 || s.x < -50 || s.x > W + 50 || s.y < -50 || s.y > H + 50) {
+                        s.z = 0.5;
+                        s.x = cx + (Math.random() - 0.5) * W * 0.4;
+                        s.y = cy + (Math.random() - 0.5) * H * 0.4;
+                    }
+                    var size = s.baseSize * (s.z / 3.5) * 1.2;
+                    if (size < 0.05) continue;
+                    s.flareTimer += 0.016;
+                    var fb = 1;
+                    if (s.flareDuration > 0) {
+                        s.flareDuration -= 0.016;
+                        fb = 1 + Math.sin(s.flareDuration * 10) * 1.5;
+                    } else if (s.flareTimer > s.flareCooldown) {
+                        s.flareDuration = s.flareMax;
+                        s.flareTimer = 0;
+                        s.flareCooldown = 10 + Math.random() * 40;
+                    }
+                    var alpha = s.brightness * fb * (s.z / 3.5);
+                    var b = Math.floor(60 + alpha * 140);
+                    sctx.fillStyle = 'rgba(' + b + ',' + b + ',' + b + ',' + Math.min(0.7, alpha).toFixed(2) + ')';
+                    sctx.beginPath();
+                    sctx.arc(s.x, s.y, size, 0, Math.PI * 2);
+                    sctx.fill();
+                }
+                starAnimId = requestAnimationFrame(drawStars);
+            }
+            
+            // ── МАНДАЛА ──
+            var mc = document.getElementById('mandalaCanvas');
+            var mctx = mc ? mc.getContext('2d') : null;
+            var mandalaAnimId = null;
+            var chars = 'ｦｧｨｩｪｫｬｭｮｯｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜﾝ0123456789';
+            var drops = [];
+            var phase = 0;
+            
+            function initMandala() {
+                if (!mc || !mctx) return;
+                var w = mc.parentElement ? mc.parentElement.clientWidth - 16 : 300;
+                if (w < 100) w = 300;
+                mc.width = w;
+                var cols = Math.floor(w / 10);
+                drops = [];
+                for (var i = 0; i < cols; i++) {
+                    drops.push({ x: i * 10 + 5, y: Math.random() * mc.height, sp: 0.2 + Math.random() * 1.0, g: Math.random() < 0.25 });
+                }
+            }
+            
+            function drawMandala() {
+                if (!mandalaActive) {
+                    mandalaAnimId = requestAnimationFrame(drawMandala);
+                    return;
+                }
+                if (!mc || !mctx || mc.width === 0 || mc.height === 0) {
+                    mandalaAnimId = requestAnimationFrame(drawMandala);
+                    return;
+                }
+                var w = mc.width, h = mc.height;
+                mctx.fillStyle = 'rgba(0,5,2,0.12)';
+                mctx.fillRect(0, 0, w, h);
+                mctx.font = '9px monospace';
+                for (var i = 0; i < drops.length; i++) {
+                    var d = drops[i];
+                    var ch = d.g ? chars[Math.floor(Math.random() * 10)] : chars[Math.floor(Math.random() * chars.length)];
+                    mctx.fillStyle = d.g ? '#00ff41' : '#0a1a0a';
+                    mctx.fillText(ch, d.x, d.y);
+                    d.y += d.sp;
+                    if (d.y > h + 10) {
+                        d.y = -5;
+                        d.x = Math.floor(Math.random() * (w / 10)) * 10 + 5;
+                    }
+                }
+                var cw = w / 3, ch2 = h / 3;
+                var mx = Math.max.apply(null, md.counts) || 1;
+                for (var j = 0; j < 9; j++) {
+                    var col = j % 3, row = Math.floor(j / 3);
+                    var cx = col * cw, cy = row * ch2;
+                    var c = md.counts[j];
+                    if (c > 0) {
+                        mctx.fillStyle = 'rgba(0,255,65,' + (0.05 + (c / mx) * 0.2) + ')';
+                        mctx.fillRect(cx + 2, cy + 2, cw - 4, ch2 - 4);
+                    }
+                    mctx.strokeStyle = c >= 2 ? '#00ff41' : (c > 0 ? '#0a2a0a' : '#0a150a');
+                    mctx.lineWidth = c >= 2 ? 1.2 : 0.5;
+                    mctx.strokeRect(cx + 1, cy + 1, cw - 2, ch2 - 2);
+                    mctx.fillStyle = c >= 2 ? '#00ff41' : (c > 0 ? '#0a3a0a' : '#0a150a');
+                    mctx.font = 'bold ' + Math.max(12, ch2 * 0.4) + 'px monospace';
+                    mctx.textAlign = 'center';
+                    mctx.textBaseline = 'middle';
+                    mctx.fillText(j + 1, cx + cw / 2, cy + ch2 / 2);
+                }
+                phase += 0.02;
+                for (var k = 0; k < md.connections.length; k++) {
+                    var a = md.connections[k][0], b = md.connections[k][1];
+                    var ax = (a % 3) * cw + cw / 2, ay = Math.floor(a / 3) * ch2 + ch2 / 2;
+                    var bx = (b % 3) * cw + cw / 2, by = Math.floor(b / 3) * ch2 + ch2 / 2;
+                    mctx.strokeStyle = 'rgba(0,255,65,0.15)';
+                    mctx.lineWidth = 0.5;
+                    mctx.beginPath();
+                    mctx.moveTo(ax, ay);
+                    mctx.lineTo(bx, by);
+                    mctx.stroke();
+                    var pp = (Math.sin(phase + a + b) + 1) / 2;
+                    var lx = ax + (bx - ax) * pp, ly = ay + (by - ay) * pp;
+                    mctx.fillStyle = 'rgba(0,255,65,0.7)';
+                    mctx.beginPath();
+                    mctx.arc(lx, ly, 2, 0, Math.PI * 2);
+                    mctx.fill();
+                }
+                mandalaAnimId = requestAnimationFrame(drawMandala);
+            }
+            
+            // ── ЗАПУСК АНИМАЦИЙ ──
+            function boot() {
+                initBridge();
+                if (mc && mctx) {
+                    initMandala();
+                    drawMandala();
+                }
+            //    initStars();
+            //    drawStars();
+            }
+            
+                   // ── НАЗНАЧЕНИЕ ОБРАБОТЧИКОВ ──
+            function bindEvents() {
+                var btnLaunch = document.getElementById('btnLaunch');
+                if (btnLaunch) {
+                    btnLaunch.addEventListener('click', function() {
+                        var d = document.getElementById('dayInput').value.trim();
+                        var m = document.getElementById('monthInput').value.trim();
+                        var y = document.getElementById('yearInput').value.trim();
+                        if (!d || !m || !y) {
+                            alert('Введите полную дату (ДД.ММ.ГГГГ)');
+                            return;
+                        }
+                        if (py) {
+                            py.scan(d + '.' + m + '.' + y);
+                        } else {
+                            alert('Мост не активирован. Дождитесь загрузки.');
+                        }
+                    });
+                }
+                
+                var btnCompat = document.getElementById('btnCompat');
+                if (btnCompat) {
+                    btnCompat.addEventListener('click', function() {
+                        var v = document.getElementById('partnerInput').value.trim();
+                        if (!v) {
+                            alert('Введите число партнёра');
+                            return;
+                        }
+                        if (py) py.compat(v);
+                    });
+                }
+                
+                var btnJournal = document.getElementById('btnJournal');
+                if (btnJournal) {
+                    btnJournal.addEventListener('click', function() { 
+                        if (py) py.journal(); 
+                    });
+                }
+                
+                var btnClear = document.getElementById('btnClear');
+                if (btnClear) {
+                    btnClear.addEventListener('click', function() { 
+                        if (py) py.clear_all(); 
+                    });
+                }
+                
+                // ── МОДАЛЬНОЕ ОКНО ТЕСТОВ ──
+                var testAnswers = [];
+                var testCallback = null;
+                var testTotal = 0;
+                var testCurrent = 0;
+
+                function showTestModal(title, questions, callback) {
+                    testAnswers = [];
+                    testCallback = callback;
+                    testTotal = questions.length;
+                    testCurrent = 0;
+                    document.getElementById('modalTitle').textContent = title;
+                    document.getElementById('modalClose').onclick = function() {
+                        document.getElementById('testModal').classList.remove('show');
+                    };
+                    showTestQuestion(questions);
+                    document.getElementById('testModal').classList.add('show');
+                }
+
+                function showTestQuestion(questions) {
+                    if (testCurrent >= testTotal) {
+                        document.getElementById('testModal').classList.remove('show');
+                        if (testCallback) testCallback(testAnswers);
+                        return;
+                    }
+                    document.getElementById('modalQuestion').textContent = questions[testCurrent];
+                    document.getElementById('modalProgress').textContent = 'Вопрос ' + (testCurrent+1) + ' из ' + testTotal;
+                    var optsDiv = document.getElementById('modalOptions');
+                    optsDiv.innerHTML = '';
+                    for (var o = 1; o <= 5; o++) {
+                        (function(val) {
+                            var btn = document.createElement('button');
+                            btn.className = 'opt-btn';
+                            btn.textContent = val;
+                            btn.onclick = function() {
+                                testAnswers.push(val);
+                                testCurrent++;
+                                if (testCurrent < testTotal) {
+                                    showTestQuestion(questions);
+                                } else {
+                                    document.getElementById('testModal').classList.remove('show');
+                                    if (testCallback) testCallback(testAnswers);
+                                }
+                            };
+                            optsDiv.appendChild(btn);
+                        })(o);
+                    }
+                }
+
+                // ТОБОЛ
+                var btnTobolog = document.getElementById('btnTobolog');
+                if (btnTobolog) {
+                    btnTobolog.addEventListener('click', function() {
+                        if (!py) return;
+                        var q = [
+                            'Вопрос 1/12: Как вы относитесь к сигналам системы?\n1-Спокойно, это часть жизни | 2-Стараюсь не думать | 3-Работаю, чтобы отвлечься | 4-Постоянно тревожусь | 5-Ищу новые симптомы',
+                            'Вопрос 2/12: Как часто думаете о возможных сбоях?\n1-Редко | 2-Гоню эти мысли | 3-Мешает работать | 4-Постоянно изматывает | 5-Уверен, что сбои уже есть',
+                            'Вопрос 3/12: Влияет ли состояние на работу?\n1-Нет, работа помогает | 2-Работаю как обычно | 3-Больше работаю, чтобы забыться | 4-Не могу работать | 5-Ищу причину в работе',
+                            'Вопрос 4/12: Реакция когда нет диагноза?\n1-Доверяю врачам | 2-Иду к другому | 3-Врачи некомпетентны | 4-Паникую | 5-Скрывают диагноз',
+                            'Вопрос 5/12: Делитесь переживаниями?\n1-Да, помогает | 2-Иногда | 3-Нет, не хочу быть обузой | 4-Боюсь не поймут | 5-Это личное',
+                            'Вопрос 6/12: Отношение к ограничениям?\n1-Принимаю | 2-Не замечаю | 3-Мешают жить | 4-Чувствую беспомощность | 5-Считаю несправедливыми',
+                            'Вопрос 7/12: Бывают ли вспышки раздражения?\n1-Нет, спокоен | 2-Редко | 3-Часто срываюсь | 4-Постоянно раздражён | 5-Срываюсь на близких',
+                            'Вопрос 8/12: Верите в восстановление?\n1-Да, полностью | 2-Надеюсь, но сомневаюсь | 3-Верю если найдут причину | 4-Сомневаюсь | 5-Неизлечимо',
+                            'Вопрос 9/12: Отношение к советам?\n1-Принимаю с благодарностью | 2-Слушаю, но решаю сам | 3-Раздражаюсь | 4-Чувствую уязвимость | 5-Они не понимают',
+                            'Вопрос 10/12: Ищете информацию?\n1-Да, чтобы понимать | 2-Иногда | 3-Постоянно, успокаивает | 4-Нахожу всё у себя | 5-Врачи лучше знают',
+                            'Вопрос 11/12: Реакция на непонимание?\n1-Объясняю спокойно | 2-Всё равно | 3-Замыкаюсь | 4-Обида и одиночество | 5-Завидуют',
+                            'Вопрос 12/12: Извлекли выгоды?\n1-Нет | 2-Больше отдыхаю | 3-Не хожу на работу | 4-Больше внимания | 5-Понял кто друг'
+                        ];
+                        showTestModal('🧠 СТИЛЬ РЕАКЦИИ', q, function(a) {
+                            py.tobolog_save(JSON.stringify(a));
+                            document.getElementById('testsStatus').textContent = '✅ стиль реакции сохранён';
+                        });
+                    });
+                }
+
+                // ВКБ
+                var btnVkb = document.getElementById('btnVkb');
+                if (btnVkb) {
+                    btnVkb.addEventListener('click', function() {
+                        if (!py) return;
+                        var q = [
+                            'Какие телесные ощущения вас беспокоят?\n1-Нет | 2-Слабые | 3-Умеренные | 4-Сильные | 5-Очень сильные',
+                            'Где именно вы их чувствуете?\n1-Нигде | 2-В одном месте | 3-В нескольких | 4-По всему телу | 5-Меняется',
+                            'Как бы вы описали эти ощущения?\n1-Никак | 2-Трудно описать | 3-Тяжесть/давление | 4-Боль/спазм | 5-Жжение/пульсация',
+                            'Изменяются ли ощущения в течение дня?\n1-Нет | 2-Слабо | 3-Умеренно | 4-Сильно | 5-Постоянно меняются',
+                            'Какие эмоции вызывает это состояние?\n1-Никаких | 2-Лёгкое беспокойство | 3-Тревогу | 4-Страх | 5-Панику',
+                            'Как часто вы испытываете тревогу?\n1-Никогда | 2-Редко | 3-Иногда | 4-Часто | 5-Постоянно',
+                            'Бывает ли страшно за будущее?\n1-Нет | 2-Редко | 3-Иногда | 4-Часто | 5-Постоянно',
+                            'Чувствуете ли обиду или злость?\n1-Нет | 2-Редко | 3-Иногда | 4-Часто | 5-Постоянно',
+                            'Что вы знаете о своём состоянии?\n1-Всё понятно | 2-Многое знаю | 3-Кое-что | 4-Мало | 5-Ничего не понимаю',
+                            'Понимаете ли почему оно возникло?\n1-Да, полностью | 2-В основном | 3-Частично | 4-Смутно | 5-Нет',
+                            'Как оцениваете прогноз?\n1-Отличный | 2-Хороший | 3-Средний | 4-Плохой | 5-Безнадёжный',
+                            'Что готовы делать для улучшения?\n1-Всё необходимое | 2-Многое | 3-Кое-что | 4-Мало | 5-Ничего',
+                            'Какие изменения уже сделали?\n1-Полностью изменил образ жизни | 2-Многое изменил | 3-Частично | 4-Планирую | 5-Никаких',
+                            'Что мешает следовать рекомендациям?\n1-Ничего | 2-Лень | 3-Нехватка времени | 4-Страх | 5-Неверие в успех',
+                            'Насколько верите в успех?\n1-Полностью | 2-В основном | 3-Наполовину | 4-Слабо | 5-Не верю',
+                            'Чувствуете ли поддержку окружающих?\n1-Да, полную | 2-В основном | 3-Частично | 4-Слабо | 5-Нет'
+                        ];
+                        showTestModal('📡 УРОВЕНЬ СИГНАЛА', q, function(a) {
+                            var avg = Math.round(a.reduce(function(s,v){return s+v;},0)/a.length);
+                            py.vkb_save(avg <= 1 ? 1 : (avg <= 2 ? 2 : (avg <= 3 ? 3 : 4)));
+                            document.getElementById('testsStatus').textContent = '✅ уровень сигнала сохранён';
+                        });
+                    });
+                }
+
+                // АЛЕКСИТИМИЯ
+                var btnAlexi = document.getElementById('btnAlexi');
+                if (btnAlexi) {
+                    btnAlexi.addEventListener('click', function() {
+                        if (!py) return;
+                        var q = [
+                            'Мне трудно определить, какое чувство я испытываю\n1-Нет | 2-Редко | 3-Иногда | 4-Часто | 5-Постоянно',
+                            'У меня есть телесные ощущения, которые врачи не объясняют\n1-Нет | 2-Редко | 3-Иногда | 4-Часто | 5-Постоянно',
+                            'Когда я расстроен, не знаю: грусть, страх или злость\n1-Нет | 2-Редко | 3-Иногда | 4-Часто | 5-Постоянно',
+                            'Мне трудно найти слова для своих чувств\n1-Нет | 2-Редко | 3-Иногда | 4-Часто | 5-Постоянно',
+                            'Врачи говорят — всё в порядке, но я чувствую иначе\n1-Нет | 2-Редко | 3-Иногда | 4-Часто | 5-Постоянно',
+                            'Описываю чувства одним словом: "плохо" или "хорошо"\n1-Нет | 2-Редко | 3-Иногда | 4-Часто | 5-Постоянно',
+                            'Мне трудно поверить, что состояние связано с эмоциями\n1-Нет | 2-Редко | 3-Иногда | 4-Часто | 5-Постоянно',
+                            'Эмоции — помеха, их лучше подавлять\n1-Нет | 2-Редко | 3-Иногда | 4-Часто | 5-Постоянно'
+                        ];
+                        showTestModal('🔇 ФИЛЬТР ЭМОЦИЙ', q, function(a) {
+                            py.alexi_save(JSON.stringify(a));
+                            document.getElementById('testsStatus').textContent = '✅ фильтр эмоций сохранён';
+                        });
+                    });
+                }
+                
+                var rows = document.querySelectorAll('.scale-row');
+                for (var r = 0; r < rows.length; r++) {
+                    rows[r].addEventListener('click', function() {
+                        var contour = this.getAttribute('data-contour');
+                        if (contour) showDetail(contour);
+                    });
+                }
+                
+                var dayInp = document.getElementById('dayInput');
+                var monthInp = document.getElementById('monthInput');
+                var yearInp = document.getElementById('yearInput');
+                var partnerInp = document.getElementById('partnerInput');
+                
+                if (dayInp) dayInp.addEventListener('input', updateAll);
+                if (monthInp) monthInp.addEventListener('input', updateAll);
+                if (yearInp) yearInp.addEventListener('input', updateAll);
+                if (partnerInp) partnerInp.addEventListener('input', updateAll);
+                
+                if (yearInp) {
+                    yearInp.addEventListener('keydown', function(e) {
+                        if (e.key === 'Enter' && py) {
+                            var d = dayInp ? dayInp.value.trim() : '';
+                            var m = monthInp ? monthInp.value.trim() : '';
+                            var y = yearInp.value.trim();
+                            if (d && m && y) py.scan(d + '.' + m + '.' + y);
+                        }
+                    });
+                }
+                
+                if (partnerInp) {
+                    partnerInp.addEventListener('keydown', function(e) {
+                        if (e.key === 'Enter' && py && partnerInp.value.trim()) {
+                            py.compat(partnerInp.value.trim());
+                        }
+                    });
+                }
+            }
+            
+            // ── СТАРТ ──
+            if (document.readyState === 'complete') {
+                boot();
+                bindEvents();
+            } else {
+                window.addEventListener('load', function() {
+                    boot();
+                    bindEvents();
+                });
+            }
+            
+            var resizeTimer = null;
+            window.addEventListener('resize', function() {
+                    if (resizeTimer) clearTimeout(resizeTimer);
+                        resizeTimer = setTimeout(function() {
+                                    if (mc && mctx) initMandala();
+                                            // initStars();  ← закомментировать, звезды не нужны
+                                                }, 200);
+            });
+            
+            document.addEventListener('visibilitychange', function() {
+                mandalaActive = !document.hidden;
+            });
+            
+        })();
+    </script>
+</body>
+</html>
